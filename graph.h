@@ -8,7 +8,7 @@ class MemTileGraph : public graph
 public:
     input_plio  in;
     output_plio  out;
-    kernel diff, k2, sq, sq2;
+    kernel diff, k1, k2, k3, k4, k5;
 
     MemTileGraph()
     {
@@ -20,22 +20,34 @@ public:
         source(diff) = "src/kernels.cpp";
         connect<stream>(in.out[0], diff.in[0]);
 
-        sq = kernel::create(square);
-        runtime<ratio>(sq) = 0.1;
-        source(sq) = "src/kernels.cpp";
-        connect<stream>(diff.out[0], sq.in[0]);
+        k1 = kernel::create(multiply);
+        runtime<ratio>(k1) = 0.1;
+        source(k1) = "src/kernels.cpp";
+        connect<stream>(diff.out[0], k1.in[0]);
+        connect<stream>(diff.out[1], k1.in[1]);
 
-        sq2 = kernel::create(square);
-        runtime<ratio>(sq2) = 0.1;
-        source(sq2) = "src/kernels.cpp";
-        connect<stream>(diff.out[1], sq2.in[0]);
-
-        k2 = kernel::create(black);
+        k2 = kernel::create(multiply_and_add);
         runtime<ratio>(k2) = 0.1;
         source(k2) = "src/kernels.cpp";
-        connect<stream>(sq.out[0], k2.in[0]);
-        connect<stream>(sq2.out[0], k2.in[1]);
+        connect<stream>(k1.out[0], k2.in[0]);
 
-        connect<stream>(k2.out[0], out.in[0]);
+        k3 = kernel::create(square);
+        runtime<ratio>(k3) = 0.1;
+        source(k3) = "src/kernels.cpp";
+        connect<stream>(k1.out[1], k3.in[0]);
+
+        k4 = kernel::create(black);
+        runtime<ratio>(k4) = 0.1;
+        source(k4) = "src/kernels.cpp";
+        connect<stream>(k2.out[1], k4.in[0]);
+        connect<stream>(k3.out[0], k4.in[1]);
+
+        k5 = kernel::create(threshold);
+        runtime<ratio>(k5) = 0.1;
+        source(k5) = "src/kernels.cpp";
+        connect<stream>(k2.out[0], k5.in[0]);
+        connect<stream>(k4.out[0], k5.in[1]);
+
+        connect<stream>(k5.out[0], out.in[0]);
     }
 };
